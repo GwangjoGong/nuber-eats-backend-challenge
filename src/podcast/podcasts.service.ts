@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
 import {
   CreateEpisodeInput,
-  CreateEpisodeOutput
+  CreateEpisodeOutput,
 } from "./dtos/create-episode.dto";
 import {
   CreatePodcastInput,
-  CreatePodcastOutput
+  CreatePodcastOutput,
 } from "./dtos/create-podcast.dto";
 import { UpdateEpisodeInput } from "./dtos/update-episode.dto";
 import { UpdatePodcastInput } from "./dtos/update-podcast.dto";
@@ -18,17 +18,17 @@ import {
   EpisodesOutput,
   EpisodesSearchInput,
   GetAllPodcastsOutput,
-  GetEpisodeOutput
+  GetEpisodeOutput,
 } from "./dtos/podcast.dto";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, Raw, Like } from "typeorm";
 import {
   SearchPodcastsInput,
-  SearchPodcastsOutput
+  SearchPodcastsOutput,
 } from "./dtos/search-podcasts.dto";
 import {
   CreateReviewInput,
-  CreateReviewOutput
+  CreateReviewOutput,
 } from "./dtos/create-review.dto";
 import { User } from "src/users/entities/user.entity";
 
@@ -45,15 +45,17 @@ export class PodcastsService {
 
   private readonly InternalServerErrorOutput = {
     ok: false,
-    error: "Internal server error occurred."
+    error: "Internal server error occurred.",
   };
 
   async getAllPodcasts(): Promise<GetAllPodcastsOutput> {
     try {
-      const podcasts = await this.podcastRepository.find();
+      const podcasts = await this.podcastRepository.find({
+        relations: ["creator", "reviews"],
+      });
       return {
         ok: true,
-        podcasts
+        podcasts,
       };
     } catch (e) {
       return this.InternalServerErrorOutput;
@@ -70,7 +72,7 @@ export class PodcastsService {
       const { id } = await this.podcastRepository.save(newPodcast);
       return {
         ok: true,
-        id
+        id,
       };
     } catch (e) {
       return this.InternalServerErrorOutput;
@@ -86,12 +88,12 @@ export class PodcastsService {
       if (!podcast) {
         return {
           ok: false,
-          error: `Podcast with id ${id} not found`
+          error: `Podcast with id ${id} not found`,
         };
       }
       return {
         ok: true,
-        podcast
+        podcast,
       };
     } catch (e) {
       return this.InternalServerErrorOutput;
@@ -132,7 +134,7 @@ export class PodcastsService {
       ) {
         return {
           ok: false,
-          error: "Rating must be between 1 and 5."
+          error: "Rating must be between 1 and 5.",
         };
       } else {
         const updatedPodcast: Podcast = { ...podcast, ...payload };
@@ -146,14 +148,14 @@ export class PodcastsService {
 
   async searchPodcasts({
     titleQuery,
-    page
+    page,
   }: SearchPodcastsInput): Promise<SearchPodcastsOutput> {
     try {
       const [podcasts, totalCount] = await this.podcastRepository.findAndCount({
         // where: { title: Raw((title) => `${title} LIKE ${titleQuery}`) },
         where: { title: Like(`%${titleQuery}%`) },
         take: 50,
-        skip: (page - 1) * 50
+        skip: (page - 1) * 50,
       });
       if (!podcasts) {
         return { ok: false, error: "Could not find podcasts" };
@@ -162,7 +164,7 @@ export class PodcastsService {
         ok: true,
         podcasts,
         totalCount,
-        totalPages: Math.ceil(totalCount / 50)
+        totalPages: Math.ceil(totalCount / 50),
       };
     } catch (err) {
       console.log(err);
@@ -177,13 +179,13 @@ export class PodcastsService {
     }
     return {
       ok: true,
-      episodes: podcast.episodes
+      episodes: podcast.episodes,
     };
   }
 
   async getEpisode({
     podcastId,
-    episodeId
+    episodeId,
   }: EpisodesSearchInput): Promise<GetEpisodeOutput> {
     const { episodes, ok, error } = await this.getEpisodes(podcastId);
     if (!ok) {
@@ -193,12 +195,12 @@ export class PodcastsService {
     if (!episode) {
       return {
         ok: false,
-        error: `Episode with id ${episodeId} not found in podcast with id ${podcastId}`
+        error: `Episode with id ${episodeId} not found in podcast with id ${podcastId}`,
       };
     }
     return {
       ok: true,
-      episode
+      episode,
     };
   }
 
@@ -219,7 +221,7 @@ export class PodcastsService {
       const { id } = await this.episodeRepository.save(newEpisode);
       return {
         ok: true,
-        id
+        id,
       };
     } catch (e) {
       return this.InternalServerErrorOutput;
@@ -233,7 +235,7 @@ export class PodcastsService {
     try {
       const { episode, error, ok } = await this.getEpisode({
         podcastId,
-        episodeId
+        episodeId,
       });
       if (!ok) {
         return { ok, error };
@@ -255,7 +257,7 @@ export class PodcastsService {
     try {
       const { episode, ok, error } = await this.getEpisode({
         podcastId,
-        episodeId
+        episodeId,
       });
       if (!ok) {
         return { ok, error };
